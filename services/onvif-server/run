@@ -1,0 +1,13 @@
+#!/bin/sh
+XZ=/mnt/sdcard/hacks/bin/onvif.xz
+[ -f /tmp/onvif_srvd ] || xz -dc "$XZ" > /tmp/onvif_srvd
+chmod +x /tmp/onvif_srvd 2>/dev/null
+PTZARGS=""
+if [ "$(cat /mnt/sdcard/hacks/etc/ptz_enabled 2>/dev/null)" != "off" ]; then
+  PTZARGS="--ptz --move_left /mnt/data/scripts/ptz ptz right 20 --move_right /mnt/data/scripts/ptz ptz left 20 --move_up /mnt/data/scripts/ptz ptz down 20 --move_down /mnt/data/scripts/ptz ptz up 20 --move_stop /mnt/data/scripts/ptz ptz stop"
+fi
+exec /tmp/onvif_srvd --no_fork --no_chdir --pid_file /tmp/onvif.pid --log_file /tmp/onvif.log \
+  --port 5000 --user admin --password admin --model MJSXJ02CM --ifs wlan0 \
+  --scope "onvif://www.onvif.org/Profile/S" --scope "onvif://www.onvif.org/name/MJSXJ02CM" \
+  --scope "onvif://www.onvif.org/hardware/IPC009" --name Main --width 1920 --height 1088 \
+  --url "rtsp://%s:8554/mainstream" --snapurl "http://%s:8554/" --type H264 $PTZARGS

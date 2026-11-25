@@ -1,0 +1,19 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+if [ "$(cat /mnt/sdcard/hacks/etc/ptz_enabled 2>/dev/null)" = "off" ]; then
+  printf '{"ok":false,"error":"ptz disabled"}\n'; exit 0
+fi
+Q="$QUERY_STRING"; dir=$(echo "$Q" | sed -n 's/.*dir=\([a-z]*\).*/\1/p'); steps=$(echo "$Q" | sed -n 's/.*steps=\([0-9]*\).*/\1/p')
+case "$dir" in left|right|up|down|stop) ;; *) printf '{"ok":false,"error":"bad dir"}\n'; exit 0;; esac
+[ -z "$steps" ] && steps=20
+[ "$steps" -gt 100 ] && steps=100
+case "$dir" in
+  left)  move=right;;
+  right) move=left;;
+  up)    move=down;;
+  down)  move=up;;
+  stop)  move=stop;;
+esac
+if [ "$move" = "stop" ]; then /mnt/data/scripts/ptz ptz stop >/dev/null 2>&1; else /mnt/data/scripts/ptz ptz "$move" "$steps" >/dev/null 2>&1; fi
+pos=$(MIJIA_LIB_PATH=/mnt/data/lib /tmp/control -D /mnt/data/control.db ptz get 2>/dev/null | awk '/^x /{x=$2}/^y /{y=$2}END{if(x!="")print x","y}')
+printf '{"ok":true,"dir":"%s","move":"%s","steps":%s,"pos":"%s"}\n' "$dir" "$move" "$steps" "${pos:-?}"

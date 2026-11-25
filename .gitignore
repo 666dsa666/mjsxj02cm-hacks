@@ -1,0 +1,8 @@
+*.tgz
+*.xz
+*.bin
+*.img
+secrets/
+*.squashfs
+*.md5
+BUILD_LOG.txt

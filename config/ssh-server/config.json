@@ -1,0 +1,6 @@
+{
+    "users":
+    [
+        {"systemUsername": "root", "username": "root", "password": "CHANGE_ME"}
+    ]
+}

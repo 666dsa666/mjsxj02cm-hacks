@@ -1,0 +1,4 @@
+#!/bin/sh
+[ -x /tmp/control ] || xz -d -c /mnt/sdcard/hacks/bin/control.xz > /tmp/control
+chmod +x /tmp/control 2>/dev/null
+MIJIA_LIB_PATH=/mnt/data/lib exec /tmp/control -D /mnt/data/control.db "$@"

@@ -1,0 +1,24 @@
+#!/bin/sh
+printf 'Content-Type: application/json\nCache-Control: no-store\n\n'
+up=$(cut -d' ' -f1 /proc/uptime 2>/dev/null)
+load=$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null)
+mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2}END{if(t>0)printf "%d",(t-a)*100/t; else print 0}' /proc/meminfo 2>/dev/null)
+port_up(){ [ -r /proc/net/tcp ] && grep -q ":$1 " /proc/net/tcp 2>/dev/null && echo up || echo down; }
+rtsp=$(port_up 216A)
+onvif=$(port_up 1388)
+ssh=$(port_up 0016)
+tz=$(readlink /mnt/data/etc/TZ 2>/dev/null | sed 's#.*/zoneinfo/##')
+avail=false; [ -d /mnt/data/hacks/service/ssh-server ] && avail=true
+cloud=false; pidof miio_client >/dev/null 2>&1 && cloud=true
+rtspup=false; pidof rtspserver >/dev/null 2>&1 && rtspup=true
+nas=false; pidof miio_nas >/dev/null 2>&1 && nas=true
+pref(){ v=$(cat "/mnt/sdcard/hacks/etc/$1" 2>/dev/null); [ -z "$v" ] && v=on; echo "$v"; }
+onvif_pref=$(pref onvif)
+nas_pref=$(pref nas)
+ptz=$(cat /mnt/sdcard/hacks/etc/ptz_enabled 2>/dev/null); [ -z "$ptz" ] && ptz=on
+if [ "$cloud" = true ] && [ "$rtspup" = true ]; then mode=mixed
+elif [ "$cloud" = true ]; then mode=cloud
+elif [ "$rtspup" = true ]; then mode=local
+else mode=off; fi
+printf '{"uptime":%s,"load":"%s","mem":%s,"services":{"rtsp":"%s","onvif":"%s","ssh":"%s"},"ssh_avail":%s,"mode":"%s","cloud":%s,"nas":%s,"onvif_pref":"%s","nas_pref":"%s","ptz":"%s","tz":"%s"}\n' \
+  "${up:-0}" "${load:-0}" "${mem:-0}" "$rtsp" "$onvif" "$ssh" "$avail" "$mode" "$cloud" "$nas" "$onvif_pref" "$nas_pref" "$ptz" "$tz"

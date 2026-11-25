@@ -1,0 +1,15 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+DIR=/mnt/sdcard/MIJIA_RECORD_VIDEO
+printf '['
+first=1
+for f in "$DIR"/*; do
+  [ -e "$f" ] || continue
+  n=$(basename "$f")
+  if [ -d "$f" ]; then s=0; d=true; else s=$(ls -l "$f" 2>/dev/null | awk "{print \$5}"); [ -z "$s" ] && s=0; d=false; fi
+  [ $first -eq 0 ] && printf ','
+  printf '{"n":"%s","s":%s,"d":%s,"p":"%s"}' "$n" "$s" "$d" "${f#/mnt/sdcard/}"
+  first=0
+done
+printf ']\n'
+

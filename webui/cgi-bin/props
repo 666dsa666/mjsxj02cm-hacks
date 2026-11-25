@@ -1,0 +1,17 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+H=/mnt/sdcard/hacks/bin/miio_rpc
+if ! pidof miio_client >/dev/null 2>&1; then
+  printf '{"ok":false,"error":"miio off (local mode)"}\n'; exit 0
+fi
+out=$($H get_prop '["watermark","wdr","light","flip","full_color","night_mode"]' 2>/dev/null)
+if [ -z "$out" ]; then
+  printf '{"ok":false,"error":"no reply"}\n'; exit 0
+fi
+vals=$(echo "$out" | sed -n 's/.*"result"[[:space:]]*:[[:space:]]*\[\([^]]*\)\].*/\1/p' | tr -d '"' | tr ',' ' ')
+set -- $vals
+if [ $# -lt 6 ]; then
+  printf '{"ok":false,"error":"parse"}\n'; exit 0
+fi
+printf '{"ok":true,"watermark":"%s","wdr":"%s","light":"%s","flip":"%s","full_color":"%s","night_mode":"%s"}\n' \
+  "$1" "$2" "$3" "$4" "$5" "$6"

@@ -1,0 +1,15 @@
+#!/bin/sh
+Q="$QUERY_STRING"; setz=$(echo "$Q" | sed -n 's/.*set=\([A-Za-z0-9_\/+-]*\).*/\1/p')
+if [ -n "$setz" ] && [ -f "/usr/share/zoneinfo/$setz" ]; then
+  ln -sf "/usr/share/zoneinfo/$setz" /mnt/data/etc/TZ
+  printf 'Content-Type: application/json\n\n{"ok":true,"current":"%s"}\n' "$setz"; exit 0
+fi
+cur=$(readlink /mnt/data/etc/TZ 2>/dev/null | sed 's#.*/zoneinfo/##')
+printf 'Content-Type: application/json\n\n{"current":"%s","zones":[' "$cur"
+first=1
+for z in Europe/Paris Europe/London Europe/Berlin Europe/Kyiv Europe/Moscow UTC America/New_York Asia/Tokyo; do
+  [ -f "/usr/share/zoneinfo/$z" ] || continue
+  [ $first -eq 0 ] && printf ','
+  printf '"%s"' "$z"; first=0
+done
+printf ']}\n'

@@ -1,0 +1,11 @@
+#!/bin/sh
+Q="$QUERY_STRING"; p=$(echo "$Q" | sed -n 's/.*path=\([^&]*\).*/\1/p')
+p=$(printf '%b' "$(echo "$p" | sed 's/%2F/\//g; s/%20/ /g')")
+case "$p" in *..*|/*) printf 'Content-Type: text/plain\n\nforbidden\n'; exit 0;; esac
+F="/mnt/sdcard/$p"
+if [ -f "$F" ]; then
+  printf 'Content-Type: application/octet-stream\nContent-Disposition: attachment; filename="%s"\n\n' "$(basename "$F")"
+  cat "$F"
+else
+  printf 'Content-Type: text/plain\n\nnot found\n'
+fi

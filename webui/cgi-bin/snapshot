@@ -1,0 +1,29 @@
+#!/bin/sh
+# Serve the latest snapshot JPEG produced by the camera (SD tmp.jpeg).
+# ?info=1 returns JSON metadata; otherwise the JPEG itself.
+F="/mnt/sdcard/MIJIA_RECORD_VIDEO/tmp.jpeg"
+Q="$QUERY_STRING"
+case "$Q" in
+  *info=1*)
+    printf 'Content-Type: application/json\nCache-Control: no-store\n\n'
+    if [ -f "$F" ]; then
+      size=$(ls -l "$F" 2>/dev/null | awk '{print $5}')
+      [ -z "$size" ] && size=0
+      mtime=$(date -r "$F" +%s 2>/dev/null)
+      [ -z "$mtime" ] && mtime=0
+      printf '{"ok":true,"size":%s,"mtime":%s,"path":"/mnt/sdcard/MIJIA_RECORD_VIDEO/tmp.jpeg"}\n' "$size" "$mtime"
+    else
+      printf '{"ok":false,"error":"no snapshot on SD"}\n'
+    fi
+    ;;
+  *)
+    if [ -f "$F" ]; then
+      size=$(ls -l "$F" 2>/dev/null | awk '{print $5}')
+      [ -z "$size" ] && size=0
+      printf 'Content-Type: image/jpeg\nCache-Control: no-store\nContent-Length: %s\n\n' "$size"
+      cat "$F"
+    else
+      printf 'Content-Type: text/plain\nCache-Control: no-store\n\nNo snapshot available on the SD card.\n'
+    fi
+    ;;
+esac

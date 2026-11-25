@@ -1,0 +1,7 @@
+#!/bin/sh
+export LD_LIBRARY_PATH=/mnt/data/lib
+ETCDIR=/mnt/data/etc/framegrabber/
+mkdir -p "$ETCDIR"
+PIPE="${ETCDIR}rtsp_substream"
+[ -p "$PIPE" ] || mkfifo "$PIPE"
+exec /mnt/data/bin/framegrabber -f "$PIPE" -c 1

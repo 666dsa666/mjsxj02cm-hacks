@@ -1,0 +1,4 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+( sleep 1; sync; reboot ) >/dev/null 2>&1 &
+printf '{"ok":true,"msg":"restarting"}\n'

@@ -1,0 +1,10 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+Q="$QUERY_STRING"; state=$(echo "$Q" | sed -n 's/.*state=\([a-z]*\).*/\1/p')
+case "$state" in on|off) ;; *) printf '{"ok":false,"error":"bad state"}\n'; exit 0;; esac
+mkdir -p /mnt/sdcard/hacks/etc
+printf '%s' "$state" > /mnt/sdcard/hacks/etc/ptz_enabled
+PATH=/mnt/sdcard/hacks/bin:$PATH
+export PATH
+sv restart /mnt/data/hacks/service/onvif-server >/dev/null 2>&1
+printf '{"ok":true,"ptz":"%s"}\n' "$state"

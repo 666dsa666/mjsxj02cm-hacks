@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/sbin/httpd -p 8080 -h /mnt/sdcard/hacks/www -f

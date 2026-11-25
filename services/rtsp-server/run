@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /mnt/sdcard/hacks/bin/rtspserver -c /mnt/sdcard/hacks/etc/config.json -m /mnt/data/etc/framegrabber/rtsp_mainstream -s /mnt/data/etc/framegrabber/rtsp_substream

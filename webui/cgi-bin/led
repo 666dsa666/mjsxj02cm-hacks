@@ -1,0 +1,9 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+Q="$QUERY_STRING"; state=$(echo "$Q" | sed -n 's/.*state=\([a-z]*\).*/\1/p')
+GPIO=/sys/class/gpio/gpio78/value
+if [ "$state" = "on" ]; then echo 1 > "$GPIO" 2>/dev/null; fi
+if [ "$state" = "off" ]; then echo 0 > "$GPIO" 2>/dev/null; fi
+cur=$(cat "$GPIO" 2>/dev/null)
+case "$cur" in 1) s=on;; 0) s=off;; *) s=unknown;; esac
+printf '{"ok":true,"led":"%s"}\n' "$s"

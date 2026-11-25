@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p /mnt/data/etc/dropbear
+exec /mnt/sdcard/hacks/bin/dropbear -F -E -R -B -C /mnt/sdcard/hacks/ssh-server/config/config.json

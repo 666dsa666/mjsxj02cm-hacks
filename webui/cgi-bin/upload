@@ -1,0 +1,10 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+Q="$QUERY_STRING"; n=$(echo "$Q" | sed -n 's/.*name=\([^&]*\).*/\1/p')
+n=$(echo "$n" | sed 's/%20/ /g; s/%2F/_/g; s/\.\./_/g')
+[ -z "$n" ] && n="upload.bin"
+mkdir -p /mnt/sdcard/uploads
+cat > "/mnt/sdcard/uploads/$n"
+size=$(ls -l "/mnt/sdcard/uploads/$n" 2>/dev/null | awk '{print $5}')
+[ -z "$size" ] && size=0
+printf '{"ok":true,"name":"%s","size":%s}\n' "$n" "$size"

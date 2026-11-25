@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+
+do_start() {
+	rl=$(runlevel -p)
+	runlevel -s $rl
+	telnetd
+	if [ -x "/mnt/sdcard/busybox-arm7l" ]; then
+           /mnt/sdcard/busybox-arm7l telnetd
+	fi
+
+        CUSTOM_POST_INIT=/mnt/data/scripts/post_init.sh
+        if [ -x ${CUSTOM_POST_INIT} ]; then
+            ${CUSTOM_POST_INIT} &
+        fi
+}
+
+do_stop() {
+	runlevel poweroff
+}
+
+case "$1" in
+	start)
+		[ -f /tmp/factory_mode ] && exit 1
+		do_start
+		;;
+	stop)
+		do_stop
+		;;
+	restart|reload)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac

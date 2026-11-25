@@ -1,0 +1,8 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+if [ "$(cat /mnt/sdcard/hacks/etc/ptz_enabled 2>/dev/null)" = "off" ]; then
+  printf '{"ok":false,"error":"ptz disabled"}\n'; exit 0
+fi
+( /mnt/data/scripts/ptz ptz calibrate >/tmp/calibrate.log 2>&1 ) >/dev/null 2>&1 &
+sleep 1
+printf '{"ok":true,"msg":"calibration started"}\n'

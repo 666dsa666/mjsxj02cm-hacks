@@ -1,0 +1,23 @@
+#!/bin/sh
+printf 'Content-Type: application/json\n\n'
+Q="$QUERY_STRING"
+name=$(echo "$Q" | sed -n 's/.*name=\([a-z_]*\).*/\1/p')
+value=$(echo "$Q" | sed -n 's/.*value=\([a-z0-9]*\).*/\1/p')
+H=/mnt/sdcard/hacks/bin/miio_rpc
+if ! pidof miio_client >/dev/null 2>&1; then
+  printf '{"ok":false,"error":"miio off (local mode)"}\n'; exit 0
+fi
+case "$name:$value" in
+  watermark:on|watermark:off|wdr:on|wdr:off|flip:on|flip:off|full_color:on|full_color:off|night_mode:0|night_mode:1|night_mode:2)
+    method="set_$name";;
+  *)
+    printf '{"ok":false,"error":"bad name/value"}\n'; exit 0;;
+esac
+rep=$($H "$method" "[\"$value\"]" 2>/dev/null)
+case "$rep" in
+  *OK*) : ;;
+  *) printf '{"ok":false,"error":"set failed","raw":"%s"}\n' "$rep"; exit 0;;
+esac
+sleep 1
+$H get_prop "[\"$name\"]" 2>/dev/null | sed -n 's/.*"result"[[:space:]]*:[[:space:]]*\[[[:space:]]*"\([^"]*\)".*/{"ok":true,"name":"'"$name"'","value":"\1"}/p' || true
+printf '\n'

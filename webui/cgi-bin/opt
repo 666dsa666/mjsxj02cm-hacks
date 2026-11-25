@@ -1,0 +1,35 @@
+#!/bin/sh
+# Optional services:
+#   onvif  (Local mode): on|off  -> start/stop ONVIF server, persisted
+#   nas    (Cloud mode): on|off  -> start/stop miio_nas, persisted
+printf 'Content-Type: application/json\nCache-Control: no-store\n\n'
+Q="$QUERY_STRING"
+name=$(echo "$Q" | sed -n 's/.*name=\([a-z]*\).*/\1/p')
+state=$(echo "$Q" | sed -n 's/.*state=\([a-z]*\).*/\1/p')
+PATH=/mnt/sdcard/hacks/bin:$PATH; export PATH
+mkdir -p /mnt/sdcard/hacks/etc
+mode=$(cat /mnt/sdcard/hacks/etc/mode 2>/dev/null)
+case "$name" in
+  onvif)
+    case "$state" in on|off) ;; *) printf '{"ok":false,"error":"bad state"}\n'; exit 0;; esac
+    printf '%s' "$state" > /mnt/sdcard/hacks/etc/onvif
+    if [ "$mode" = local ]; then
+      if [ "$state" = on ]; then sv up /mnt/data/hacks/service/onvif-server >/dev/null 2>&1; else sv down /mnt/data/hacks/service/onvif-server >/dev/null 2>&1; fi
+      sleep 2
+    fi
+    actual=down; pidof onvif_srvd >/dev/null 2>&1 && actual=up
+    printf '{"ok":true,"name":"onvif","state":"%s","actual":"%s","mode":"%s"}\n' "$state" "$actual" "${mode:-unknown}"
+    ;;
+  nas)
+    case "$state" in on|off) ;; *) printf '{"ok":false,"error":"bad state"}\n'; exit 0;; esac
+    printf '%s' "$state" > /mnt/sdcard/hacks/etc/nas
+    if [ "$mode" = cloud ]; then
+      if [ "$state" = on ]; then perpctl -b /etc/perp up miio_nas >/dev/null 2>&1; else perpctl -b /etc/perp down miio_nas >/dev/null 2>&1; fi
+      sleep 2
+    fi
+    actual=off; pidof miio_nas >/dev/null 2>&1 && actual=running
+    printf '{"ok":true,"name":"nas","state":"%s","actual":"%s","mode":"%s"}\n' "$state" "$actual" "${mode:-unknown}"
+    ;;
+  *)
+    printf '{"ok":false,"error":"unknown service"}\n'; exit 0;;
+esac

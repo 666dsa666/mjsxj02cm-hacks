@@ -1,0 +1,29 @@
+#!/bin/sh
+# Service control. RTSP/ONVIF "up" performs a full switch to Local mode so that
+# cloud + streaming never run together (mixed state is not persisted/allowed).
+printf 'Content-Type: application/json\n\n'
+Q="$QUERY_STRING"; name=$(echo "$Q" | sed -n 's/.*name=\([a-z]*\).*/\1/p'); action=$(echo "$Q" | sed -n 's/.*action=\([a-z]*\).*/\1/p')
+PATH=/mnt/sdcard/hacks/bin:$PATH; export PATH
+mkdir -p /mnt/sdcard/hacks/etc
+CLOUD="miio_cloud miio_miss miio_nas miio_algo miio_record miio_devicekit miio_agent miio_client"
+RTSP="framegrabber-mainstream rtsp-server onvif-server"
+case "$name" in
+  rtsp) svcs="$RTSP";;
+  onvif) svcs="onvif-server";;
+  *) printf '{"ok":false,"error":"unknown service"}\n'; exit 0;;
+esac
+if [ "$action" = "up" ]; then
+  if [ "$name" = "rtsp" ]; then
+    # enforce exclusivity: stop cloud first, then start streaming
+    for s in $CLOUD; do perpctl -b /etc/perp down "$s" >/dev/null 2>&1; sleep 1; done
+    printf '%s' local > /mnt/sdcard/hacks/etc/mode
+  fi
+  for s in $svcs; do sv up "/mnt/data/hacks/service/$s" >/dev/null 2>&1; sleep 1; done
+else
+  for s in $svcs; do sv down "/mnt/data/hacks/service/$s" >/dev/null 2>&1; done
+  if [ "$name" = "rtsp" ]; then printf '%s' off > /mnt/sdcard/hacks/etc/mode; fi
+fi
+sleep 1
+st=down
+for s in $svcs; do sv status "/mnt/data/hacks/service/$s" 2>/dev/null | grep -q '^run:' && st=up; done
+printf '{"ok":true,"name":"%s","action":"%s","status":"%s"}\n' "$name" "$action" "$st"

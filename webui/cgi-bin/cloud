@@ -1,0 +1,32 @@
+#!/bin/sh
+# Mode switch: cloud (Mi Home) XOR local (RTSP/ONVIF). fetch_av stays on in both.
+# Persists the mode and respects the optional-service prefs:
+#   /mnt/sdcard/hacks/etc/onvif = on|off  (Local only)
+#   /mnt/sdcard/hacks/etc/nas   = on|off  (Cloud only)
+printf 'Content-Type: application/json\nCache-Control: no-store\n\n'
+Q="$QUERY_STRING"; mode=$(echo "$Q" | sed -n 's/.*mode=\([a-z]*\).*/\1/p')
+CLOUD_SVCS="miio_cloud miio_miss miio_nas miio_algo miio_record miio_devicekit miio_agent miio_client"
+PATH=/mnt/sdcard/hacks/bin:$PATH; export PATH
+mkdir -p /mnt/sdcard/hacks/etc
+onvif_pref=$(cat /mnt/sdcard/hacks/etc/onvif 2>/dev/null); [ -z "$onvif_pref" ] && onvif_pref=on
+nas_pref=$(cat /mnt/sdcard/hacks/etc/nas 2>/dev/null); [ -z "$nas_pref" ] && nas_pref=on
+case "$mode" in
+  local)
+    for s in $CLOUD_SVCS; do perpctl -b /etc/perp down "$s" >/dev/null 2>&1; sleep 1; done
+    for s in framegrabber-mainstream rtsp-server; do sv up "/mnt/data/hacks/service/$s" >/dev/null 2>&1; sleep 2; done
+    if [ "$onvif_pref" = on ]; then sv up /mnt/data/hacks/service/onvif-server >/dev/null 2>&1; sleep 1; else sv down /mnt/data/hacks/service/onvif-server >/dev/null 2>&1; fi
+    printf '%s' local > /mnt/sdcard/hacks/etc/mode
+    ;;
+  cloud)
+    for s in framegrabber-mainstream rtsp-server onvif-server; do sv down "/mnt/data/hacks/service/$s" >/dev/null 2>&1; sleep 1; done
+    for s in $CLOUD_SVCS; do [ "$s" = miio_nas ] && [ "$nas_pref" = off ] && continue; perpctl -b /etc/perp up "$s" >/dev/null 2>&1; sleep 2; done
+    sleep 3
+    printf '%s' cloud > /mnt/sdcard/hacks/etc/mode
+    ;;
+  *)
+    printf '{"ok":false,"error":"bad mode"}\n'; exit 0;;
+esac
+sleep 1
+rtsp=false; pidof rtspserver >/dev/null 2>&1 && rtsp=true
+cloud=false; pidof miio_client >/dev/null 2>&1 && cloud=true
+printf '{"ok":true,"mode":"%s","rtsp":%s,"cloud":%s}\n' "$mode" "$rtsp" "$cloud"
